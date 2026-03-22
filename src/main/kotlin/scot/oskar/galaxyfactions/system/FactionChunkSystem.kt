@@ -9,7 +9,7 @@ import com.hypixel.hytale.component.system.RefChangeSystem
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore
 import scot.oskar.galaxyfactions.component.FactionChunkComponent
 
-class FactionChunkSystem(): RefChangeSystem<ChunkStore, FactionChunkComponent>() {
+class FactionChunkSystem : RefChangeSystem<ChunkStore, FactionChunkComponent>() {
 
     override fun componentType(): ComponentType<ChunkStore, FactionChunkComponent> = FactionChunkComponent.componentType
 

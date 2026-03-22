@@ -1,33 +1,39 @@
 package scot.oskar.galaxyfactions.data
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 data class FactionData(
     val id: UUID,
     val name: String,
     val owner: UUID,
-    val description: String,
+    val description: String = "No description.",
 )
 
-object Faction : Table("factions") {
-    val id = javaUUID("id").uniqueIndex()
+object Factions : Table("factions") {
+    val id = javaUUID("id")
     val name = varchar("name", 255).index()
     val owner = javaUUID("owner")
     val description = varchar("description", 255).default("No description.")
+
+    override val primaryKey = PrimaryKey(id)
 }
 
 fun ResultRow.toFactionData() = FactionData(
-    id = this[Faction.id],
-    name = this[Faction.name],
-    owner = this[Faction.owner],
-    description = this[Faction.description],
+    id = this[Factions.id],
+    name = this[Factions.name],
+    owner = this[Factions.owner],
+    description = this[Factions.description],
 )
 
 @JvmInline
@@ -36,20 +42,44 @@ value class FactionId(val value: UUID)
 class FactionRepository(private val database: Database) : Repository<FactionId, FactionData> {
 
     override suspend fun findById(id: FactionId): FactionData? = suspendTransaction(database) {
-        Faction.selectAll()
-            .where { Faction.id eq id.value }
+        Factions.selectAll()
+            .where { Factions.id eq id.value }
             .map { it.toFactionData() }
             .singleOrNull()
     }
 
     override suspend fun findAll(): List<FactionData> = suspendTransaction(database) {
-        Faction.selectAll().map { it.toFactionData() }
+        Factions.selectAll().map { it.toFactionData() }
+    }
+
+    suspend fun create(factionId: FactionId, owner: UUID, name: String) = suspendTransaction(database) {
+        Factions.insert {
+            it[Factions.name] = name
+            it[Factions.id] = factionId.value
+            it[Factions.owner] = owner
+        }
     }
 
 }
 
-class FactionService(private val factionRepository: FactionRepository, private val factionChunkRepository: FactionChunkRepository) {
+class FactionService(
+    private val factionRepository: FactionRepository,
+    private val factionChunkRepository: FactionChunkRepository,
+    private val scope: CoroutineScope
+) {
 
+    private val factionCache = ConcurrentHashMap<FactionId, FactionData>()
 
+    fun createFaction(ownerUuid: UUID, name: String): FactionData {
+        val factionId = FactionId(UUID.randomUUID())
+        scope.launch {
+            factionRepository.create(factionId, ownerUuid, name)
+        }
+        return FactionData(
+            id = factionId.value,
+            owner = ownerUuid,
+            name = name,
+        ).also { factionCache[factionId] = it }
+    }
 
 }

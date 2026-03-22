@@ -15,16 +15,16 @@ data class FactionChunkData(
     val factionId: UUID,
 )
 
-object FactionChunk : Table("faction_chunks") {
+object FactionChunks : Table("faction_chunks") {
     val chunkIndex = long("chunk_index")
-    val factionId = javaUUID("faction_id").references(Faction.id)
+    val factionId = javaUUID("faction_id").references(Factions.id).index()
 
     override val primaryKey = PrimaryKey(chunkIndex)
 }
 
 fun ResultRow.toFactionChunkData() = FactionChunkData(
-    chunkIndex = this[FactionChunk.chunkIndex],
-    factionId = this[FactionChunk.factionId],
+    chunkIndex = this[FactionChunks.chunkIndex],
+    factionId = this[FactionChunks.factionId],
 )
 
 @JvmInline
@@ -33,26 +33,26 @@ value class ChunkIndexId(val value: Long)
 class FactionChunkRepository(private val database: Database) : Repository<ChunkIndexId, FactionChunkData> {
 
     override suspend fun findById(id: ChunkIndexId): FactionChunkData? = suspendTransaction(database) {
-        FactionChunk.selectAll()
-            .where { FactionChunk.chunkIndex eq id.value }
+        FactionChunks.selectAll()
+            .where { FactionChunks.chunkIndex eq id.value }
             .singleOrNull()
             ?.toFactionChunkData()
     }
 
     override suspend fun findAll(): List<FactionChunkData> = suspendTransaction(database) {
-        FactionChunk.selectAll().map { it.toFactionChunkData() }
+        FactionChunks.selectAll().map { it.toFactionChunkData() }
     }
 
     suspend fun findByFactionId(factionId: FactionId): List<FactionChunkData> = suspendTransaction(database) {
-        FactionChunk.selectAll()
-            .where { FactionChunk.factionId eq factionId.value }
+        FactionChunks.selectAll()
+            .where { FactionChunks.factionId eq factionId.value }
             .map { it.toFactionChunkData() }
     }
 
     suspend fun createChunk(chunkIndexId: ChunkIndexId, factionId: FactionId) = suspendTransaction(database) {
-        FactionChunk.insert {
+        FactionChunks.insert {
             it[chunkIndex] = chunkIndexId.value
-            it[FactionChunk.factionId] = factionId.value
+            it[FactionChunks.factionId] = factionId.value
         }
     }
 
