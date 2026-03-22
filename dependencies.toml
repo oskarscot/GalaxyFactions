@@ -1,0 +1,10 @@
+[versions]
+exposed = "1.1.1"
+hytale-codec = "1.0.7"
+
+[libraries]
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+hytalecodec-annotation = { module = "gg.ginco:hytale-codec-annotations", version.ref = "hytale-codec" }
+hytalecodec-runtime = { module = "gg.ginco:hytale-codec-runtime", version.ref = "hytale-codec" }
+hytalecodec-processor = { module = "gg.ginco:hytale-codec-processor", version.ref = "hytale-codec" }

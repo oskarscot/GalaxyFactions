@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.3.0"
+    id("com.google.devtools.ksp") version "2.3.0"
     id("fr.smolder.hytale.dev") version "0.1.0"
 }
 
@@ -14,6 +15,15 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     compileOnly("com.hypixel.hytale:Server:2026.02.19-1a311a592")
+
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+
+    implementation(libs.hytalecodec.runtime)
+    implementation(libs.hytalecodec.annotation)
+    ksp(libs.hytalecodec.processor)
+
+    implementation("org.postgresql:postgresql:42.7.9")
 }
 
 kotlin {
