@@ -6,7 +6,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.util.UUID
 
 data class FactionData(
@@ -35,15 +35,21 @@ value class FactionId(val value: UUID)
 
 class FactionRepository(private val database: Database) : Repository<FactionId, FactionData> {
 
-    override fun findById(id: FactionId): FactionData? = transaction(database) {
+    override suspend fun findById(id: FactionId): FactionData? = suspendTransaction(database) {
         Faction.selectAll()
             .where { Faction.id eq id.value }
             .map { it.toFactionData() }
             .singleOrNull()
     }
 
-    override fun findAll(): List<FactionData> = transaction(database) {
+    override suspend fun findAll(): List<FactionData> = suspendTransaction(database) {
         Faction.selectAll().map { it.toFactionData() }
     }
+
+}
+
+class FactionService(private val factionRepository: FactionRepository, private val factionChunkRepository: FactionChunkRepository) {
+
+
 
 }

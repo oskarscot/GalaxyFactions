@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.hytalecodec.annotation)
     ksp(libs.hytalecodec.processor)
 
+    implementation(libs.coroutines)
+
     implementation("org.postgresql:postgresql:42.7.9")
 }
 
