@@ -17,6 +17,6 @@ class FactionChunkComponent(
         lateinit var componentType: ComponentType<ChunkStore, FactionChunkComponent>
     }
 
-    override fun clone(): Component<ChunkStore> = FactionChunkComponent(this.chunkIndex, factionId)
+    override fun clone(): Component<ChunkStore> = FactionChunkComponent(chunkIndex, factionId)
 
 }

@@ -2,6 +2,7 @@ package scot.oskar.galaxyfactions
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
+import scot.oskar.galaxyfactions.command.FactionCreateCommand
 import scot.oskar.galaxyfactions.command.TestCommand
 import scot.oskar.galaxyfactions.config.FactionsPluginConfig
 import com.hypixel.hytale.server.core.util.Config
@@ -15,6 +16,7 @@ import scot.oskar.galaxyfactions.component.FactionChunkComponentCodec
 import scot.oskar.galaxyfactions.config.FactionsPluginConfigCodec
 import scot.oskar.galaxyfactions.data.FactionChunkRepository
 import scot.oskar.galaxyfactions.data.FactionRepository
+import scot.oskar.galaxyfactions.data.FactionService
 import scot.oskar.galaxyfactions.system.FactionChunkSystem
 import scot.oskar.galaxyfactions.system.PlayerMovementSystem
 
@@ -25,6 +27,7 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     lateinit var database: Database
     lateinit var factionRepository: FactionRepository
     lateinit var factionChunkRepository: FactionChunkRepository
+    lateinit var factionService: FactionService
 
     init {
         config = withConfig(FactionsPluginConfigCodec)
@@ -37,13 +40,15 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
             password = config.get().password,
             driver = "org.postgresql.Driver"
         )
-        FactionChunkComponent.componentType = chunkStoreRegistry.registerComponent(FactionChunkComponent::class.java, "FactionChunkComponent", FactionChunkComponentCodec)
+        FactionChunkComponent.componentType = chunkStoreRegistry.registerComponent(FactionChunkComponent::class.java, "FactionChunk", FactionChunkComponentCodec)
 
         factionRepository = FactionRepository(database)
         factionChunkRepository = FactionChunkRepository(database)
+        factionService = FactionService(factionRepository, factionChunkRepository)
 
         logger.atInfo().log("FactionsPlugin!!!")
         commandRegistry.registerCommand(TestCommand())
+        commandRegistry.registerCommand(FactionCreateCommand(this))
     }
 
     override fun start() {

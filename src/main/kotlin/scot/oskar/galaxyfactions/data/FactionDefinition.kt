@@ -1,13 +1,12 @@
 package scot.oskar.galaxyfactions.data
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.util.UUID
@@ -60,26 +59,38 @@ class FactionRepository(private val database: Database) : Repository<FactionId, 
         }
     }
 
+    suspend fun findByName(name: String): FactionData? = suspendTransaction(database) {
+        Factions.select(Factions.name)
+            .where { Factions.name eq name }
+            .map { it.toFactionData() }
+            .firstOrNull()
+    }
+
 }
 
 class FactionService(
     private val factionRepository: FactionRepository,
     private val factionChunkRepository: FactionChunkRepository,
-    private val scope: CoroutineScope
 ) {
 
     private val factionCache = ConcurrentHashMap<FactionId, FactionData>()
 
-    fun createFaction(ownerUuid: UUID, name: String): FactionData {
+    suspend fun createFaction(ownerUuid: UUID, name: String): FactionData {
         val factionId = FactionId(UUID.randomUUID())
-        scope.launch {
-            factionRepository.create(factionId, ownerUuid, name)
-        }
+        factionRepository.create(factionId, ownerUuid, name)
         return FactionData(
             id = factionId.value,
             owner = ownerUuid,
             name = name,
         ).also { factionCache[factionId] = it }
+    }
+
+    suspend fun createChunkForFaction(chunkIndexId: ChunkIndexId, factionId: FactionId): FactionChunkData {
+        factionChunkRepository.createChunk(chunkIndexId, factionId)
+        return FactionChunkData(
+            chunkIndex = chunkIndexId.value,
+            factionId = factionId.value,
+        )
     }
 
 }
