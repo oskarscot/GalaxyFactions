@@ -13,6 +13,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.World
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
+import scot.oskar.galaxyfactions.component.FactionChunkComponent
 
 class TestCommand: AbstractPlayerCommand("test", "Test command") {
 
@@ -27,9 +28,13 @@ class TestCommand: AbstractPlayerCommand("test", "Test command") {
         val transform = store.getComponent(ref, TransformComponent.getComponentType())!!
         val chunkIndex = ChunkUtil.indexChunkFromBlock(transform.position.x.toInt(), transform.position.z.toInt())
         val chunkComponent = world.chunkStore.getChunkComponent(chunkIndex, WorldChunk.getComponentType())!!
+        val factionChunkComponent = world.chunkStore.getChunkComponent(chunkIndex, FactionChunkComponent.componentType)
         player.sendMessage(Message.join(
             Message.raw("You are at chunk x=${chunkComponent.x} z=${chunkComponent.z}")
         ))
+        factionChunkComponent?.let { faction ->
+            player.sendMessage(Message.raw("Faction Chunk: ${faction.factionId}"))
+        }
     }
 
     override fun hasPermission(sender: CommandSender): Boolean {

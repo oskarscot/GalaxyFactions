@@ -1,3 +1,5 @@
+import fr.smolder.hytale.gradle.Patchline
+
 plugins {
     kotlin("jvm") version "2.3.0"
     id("com.google.devtools.ksp") version "2.3.0"
@@ -44,12 +46,14 @@ hytale {
         description = "The Ultimate Factions Plugin"
         author("oskarscot")
 
-        serverVersion = "2026.02.19-1a311a592"
+        serverVersion = "2026.03.26-89796e57b"
 
         main = "scot.oskar.galaxyfactions.FactionsPlugin"
 
         includesAssetPack = false
     }
+
+    patchLine = Patchline.PRE_RELEASE
 
     hytalePath.set("/home/oskar/.var/app/com.hypixel.HytaleLauncher/data/Hytale")
 

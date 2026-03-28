@@ -1,5 +1,6 @@
 package scot.oskar.galaxyfactions.data
 
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
@@ -17,7 +18,7 @@ data class FactionChunkData(
 
 object FactionChunks : Table("faction_chunks") {
     val chunkIndex = long("chunk_index")
-    val factionId = javaUUID("faction_id").references(Factions.id).index()
+    val factionId = javaUUID("faction_id").references(Factions.id, onDelete = ReferenceOption.CASCADE).index()
 
     override val primaryKey = PrimaryKey(chunkIndex)
 }

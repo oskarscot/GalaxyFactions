@@ -11,13 +11,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import scot.oskar.galaxyfactions.command.FactionDeleteCommand
 import scot.oskar.galaxyfactions.component.FactionChunkComponent
 import scot.oskar.galaxyfactions.component.FactionChunkComponentCodec
 import scot.oskar.galaxyfactions.config.FactionsPluginConfigCodec
 import scot.oskar.galaxyfactions.data.FactionChunkRepository
+import scot.oskar.galaxyfactions.data.FactionChunks
+import scot.oskar.galaxyfactions.data.FactionMemberRepository
+import scot.oskar.galaxyfactions.data.FactionMembers
 import scot.oskar.galaxyfactions.data.FactionRepository
+import scot.oskar.galaxyfactions.data.Factions
 import scot.oskar.galaxyfactions.data.FactionService
-import scot.oskar.galaxyfactions.system.FactionChunkSystem
 import scot.oskar.galaxyfactions.system.PlayerMovementSystem
 
 class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
@@ -28,6 +34,7 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     lateinit var factionRepository: FactionRepository
     lateinit var factionChunkRepository: FactionChunkRepository
     lateinit var factionService: FactionService
+    lateinit var factionMemberRepository: FactionMemberRepository
 
     init {
         config = withConfig(FactionsPluginConfigCodec)
@@ -40,20 +47,25 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
             password = config.get().password,
             driver = "org.postgresql.Driver"
         )
+        transaction(database) {
+            SchemaUtils.createMissingTablesAndColumns(Factions, FactionMembers, FactionChunks)
+        }
+
         FactionChunkComponent.componentType = chunkStoreRegistry.registerComponent(FactionChunkComponent::class.java, "FactionChunk", FactionChunkComponentCodec)
 
         factionRepository = FactionRepository(database)
         factionChunkRepository = FactionChunkRepository(database)
         factionService = FactionService(factionRepository, factionChunkRepository)
+        factionMemberRepository = FactionMemberRepository(database)
 
         logger.atInfo().log("FactionsPlugin!!!")
         commandRegistry.registerCommand(TestCommand())
         commandRegistry.registerCommand(FactionCreateCommand(this))
+        commandRegistry.registerCommand(FactionDeleteCommand(this))
     }
 
     override fun start() {
         entityStoreRegistry.registerSystem(PlayerMovementSystem())
-        chunkStoreRegistry.registerSystem(FactionChunkSystem())
     }
 
     override fun shutdown() {

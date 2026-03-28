@@ -5,6 +5,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -60,8 +61,20 @@ class FactionRepository(private val database: Database) : Repository<FactionId, 
     }
 
     suspend fun findByName(name: String): FactionData? = suspendTransaction(database) {
-        Factions.select(Factions.name)
+        Factions.selectAll()
             .where { Factions.name eq name }
+            .map { it.toFactionData() }
+            .firstOrNull()
+    }
+
+    suspend fun deleteById(factionId: FactionId): Int = suspendTransaction(database) {
+            Factions.deleteWhere { Factions.id eq factionId.value }
+    }
+
+    suspend fun findByMember(memberId: UUID): FactionData? = suspendTransaction(database) {
+        Factions.innerJoin(FactionMembers)
+            .selectAll()
+            .where { FactionMembers.id eq memberId }
             .map { it.toFactionData() }
             .firstOrNull()
     }
@@ -92,5 +105,4 @@ class FactionService(
             factionId = factionId.value,
         )
     }
-
 }
