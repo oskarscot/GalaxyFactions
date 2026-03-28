@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.World
+import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import scot.oskar.galaxyfactions.FactionsPlugin
 import scot.oskar.galaxyfactions.component.FactionChunkComponent
@@ -54,7 +55,7 @@ class FactionCreateCommand(private val plugin: FactionsPlugin) : AbstractPlayerC
             plugin.factionMemberRepository.addMemberToFaction(FactionId(faction.id), playerRef.uuid)
             player.sendMessage(successMessage("Created faction ${faction.name}"))
             plugin.factionService.createChunkForFaction(ChunkIndexId(chunkIndex), FactionId(faction.id))
-        }.thenAcceptAsync {
+        }.thenAcceptAsync { it ->
             it ?: return@thenAcceptAsync
             world.execute {
                 val factionChunkComponent = FactionChunkComponent(
@@ -62,6 +63,11 @@ class FactionCreateCommand(private val plugin: FactionsPlugin) : AbstractPlayerC
                     factionId = it.factionId
                 )
                 chunkStore.store.addComponent(chunkReference, FactionChunkComponent.componentType, factionChunkComponent)
+                chunkStore.store.getComponent(chunkReference, WorldChunk.getComponentType())!!.markNeedsSaving()
+                world.worldMapManager.clearImages()
+                world.playerRefs
+                    .map { store.getComponent(playerRef.reference!!, Player.getComponentType()) }
+                    .forEach { player -> player!!.worldMapTracker.clear() }
             }
         }.exceptionally {
             plugin.logger.atSevere().withCause(it).log("Failed to create faction")

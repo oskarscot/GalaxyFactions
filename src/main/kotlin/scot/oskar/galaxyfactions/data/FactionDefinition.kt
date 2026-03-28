@@ -12,19 +12,29 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.random.Random
 
 data class FactionData(
     val id: UUID,
     val name: String,
     val owner: UUID,
     val description: String = "No description.",
+    val color: Int = generateFactionColor(),
 )
+
+private fun generateFactionColor(): Int {
+    val r = Random.nextInt(80, 220)
+    val g = Random.nextInt(80, 220)
+    val b = Random.nextInt(80, 220)
+    return (r shl 16) or (g shl 8) or b
+}
 
 object Factions : Table("factions") {
     val id = javaUUID("id")
     val name = varchar("name", 255).index()
     val owner = javaUUID("owner")
     val description = varchar("description", 255).default("No description.")
+    val color = integer("color").default(0x55AAFF)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -34,6 +44,7 @@ fun ResultRow.toFactionData() = FactionData(
     name = this[Factions.name],
     owner = this[Factions.owner],
     description = this[Factions.description],
+    color = this[Factions.color],
 )
 
 @JvmInline
@@ -52,11 +63,12 @@ class FactionRepository(private val database: Database) : Repository<FactionId, 
         Factions.selectAll().map { it.toFactionData() }
     }
 
-    suspend fun create(factionId: FactionId, owner: UUID, name: String) = suspendTransaction(database) {
+    suspend fun create(factionId: FactionId, owner: UUID, name: String, color: Int) = suspendTransaction(database) {
         Factions.insert {
             it[Factions.name] = name
             it[Factions.id] = factionId.value
             it[Factions.owner] = owner
+            it[Factions.color] = color
         }
     }
 
@@ -88,14 +100,31 @@ class FactionService(
 
     private val factionCache = ConcurrentHashMap<FactionId, FactionData>()
 
+    fun getCached(factionId: FactionId): FactionData? = factionCache[factionId]
+
+    suspend fun loadAll() {
+        factionRepository.findAll().forEach { factionCache[FactionId(it.id)] = it }
+    }
+
+    suspend fun getById(factionId: FactionId): FactionData? {
+        factionCache[factionId]?.let { return it }
+        return factionRepository.findById(factionId)?.also { factionCache[FactionId(it.id)] = it }
+    }
+
     suspend fun createFaction(ownerUuid: UUID, name: String): FactionData {
         val factionId = FactionId(UUID.randomUUID())
-        factionRepository.create(factionId, ownerUuid, name)
+        val color = generateFactionColor()
+        factionRepository.create(factionId, ownerUuid, name, color)
         return FactionData(
             id = factionId.value,
             owner = ownerUuid,
             name = name,
+            color = color,
         ).also { factionCache[factionId] = it }
+    }
+
+    fun removeCached(factionId: FactionId) {
+        factionCache.remove(factionId)
     }
 
     suspend fun createChunkForFaction(chunkIndexId: ChunkIndexId, factionId: FactionId): FactionChunkData {

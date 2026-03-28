@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -23,7 +24,13 @@ import scot.oskar.galaxyfactions.data.FactionMemberRepository
 import scot.oskar.galaxyfactions.data.FactionMembers
 import scot.oskar.galaxyfactions.data.FactionRepository
 import scot.oskar.galaxyfactions.data.Factions
+import com.hypixel.hytale.codec.lookup.Priority
+import com.hypixel.hytale.server.core.universe.Universe
+import com.hypixel.hytale.server.core.universe.world.worldmap.provider.IWorldMapProvider
 import scot.oskar.galaxyfactions.data.FactionService
+import scot.oskar.galaxyfactions.map.FactionWorldMap
+import scot.oskar.galaxyfactions.map.FactionWorldMapProvider
+import scot.oskar.galaxyfactions.system.ChunkChangeEventSystem
 import scot.oskar.galaxyfactions.system.PlayerMovementSystem
 
 class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
@@ -58,6 +65,15 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         factionService = FactionService(factionRepository, factionChunkRepository)
         factionMemberRepository = FactionMemberRepository(database)
 
+        scope.launch { factionService.loadAll() }
+
+        IWorldMapProvider.CODEC.register(
+            Priority.DEFAULT.before(),
+            FactionWorldMapProvider.ID,
+            FactionWorldMapProvider::class.java,
+            FactionWorldMapProvider.createCodec(factionService)
+        )
+
         logger.atInfo().log("FactionsPlugin!!!")
         commandRegistry.registerCommand(TestCommand())
         commandRegistry.registerCommand(FactionCreateCommand(this))
@@ -66,6 +82,7 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
     override fun start() {
         entityStoreRegistry.registerSystem(PlayerMovementSystem())
+        entityStoreRegistry.registerSystem(ChunkChangeEventSystem(factionService))
     }
 
     override fun shutdown() {

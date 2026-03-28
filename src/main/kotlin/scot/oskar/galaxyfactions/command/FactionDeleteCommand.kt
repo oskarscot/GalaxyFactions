@@ -5,8 +5,10 @@ import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.server.core.command.system.CommandContext
 import com.hypixel.hytale.server.core.command.system.CommandSender
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand
+import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.World
+import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import scot.oskar.galaxyfactions.FactionsPlugin
 import scot.oskar.galaxyfactions.component.FactionChunkComponent
@@ -37,6 +39,7 @@ class FactionDeleteCommand(private val plugin: FactionsPlugin): AbstractPlayerCo
             val factionId = FactionId(factionData.id)
             val chunks = plugin.factionChunkRepository.findByFactionId(factionId)
             plugin.factionRepository.deleteById(factionId)
+            plugin.factionService.removeCached(factionId)
             playerRef.sendMessage(successMessage("Faction '${factionData.name}' has been deleted."))
             chunks
         }.thenAcceptAsync { chunks ->
@@ -45,8 +48,14 @@ class FactionDeleteCommand(private val plugin: FactionsPlugin): AbstractPlayerCo
                 val chunkStore = world.chunkStore
                 for (chunk in chunks) {
                     val chunkRef = chunkStore.getChunkReference(chunk.chunkIndex) ?: continue
+                    val existing = chunkStore.store.getComponent(chunkRef, FactionChunkComponent.componentType) ?: continue
                     chunkStore.store.removeComponent(chunkRef, FactionChunkComponent.componentType)
+                    chunkStore.store.getComponent(chunkRef, WorldChunk.getComponentType())!!.markNeedsSaving()
                 }
+                world.worldMapManager.clearImages()
+                world.playerRefs
+                    .map { store.getComponent(playerRef.reference!!, Player.getComponentType()) }
+                    .forEach { player -> player!!.worldMapTracker.clear() }
             }
         }.exceptionally {
             playerRef.sendMessage(errorMessage("Failed to delete the faction."))
