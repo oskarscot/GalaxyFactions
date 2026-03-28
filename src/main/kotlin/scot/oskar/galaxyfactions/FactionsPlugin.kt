@@ -14,7 +14,9 @@ import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import scot.oskar.galaxyfactions.command.FactionClaimCommand
 import scot.oskar.galaxyfactions.command.FactionDeleteCommand
+import scot.oskar.galaxyfactions.command.FactionUnclaimCommand
 import scot.oskar.galaxyfactions.component.FactionChunkComponent
 import scot.oskar.galaxyfactions.component.FactionChunkComponentCodec
 import scot.oskar.galaxyfactions.config.FactionsPluginConfigCodec
@@ -78,6 +80,8 @@ class FactionsPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         commandRegistry.registerCommand(TestCommand())
         commandRegistry.registerCommand(FactionCreateCommand(this))
         commandRegistry.registerCommand(FactionDeleteCommand(this))
+        commandRegistry.registerCommand(FactionClaimCommand(this))
+        commandRegistry.registerCommand(FactionUnclaimCommand(this))
     }
 
     override fun start() {

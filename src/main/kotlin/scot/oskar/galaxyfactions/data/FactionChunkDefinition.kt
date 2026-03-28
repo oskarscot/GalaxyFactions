@@ -6,6 +6,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -55,6 +56,10 @@ class FactionChunkRepository(private val database: Database) : Repository<ChunkI
             it[chunkIndex] = chunkIndexId.value
             it[FactionChunks.factionId] = factionId.value
         }
+    }
+
+    suspend fun deleteByChunkIndex(chunkIndexId: ChunkIndexId): Int = suspendTransaction(database) {
+        FactionChunks.deleteWhere { chunkIndex eq chunkIndexId.value }
     }
 
 }
